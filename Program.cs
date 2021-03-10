@@ -6,23 +6,21 @@ namespace EncoderCore
     {
         static void Main(string[] args)
         {
+            var mappingType = 'F';
             var myCase = "HELLO WORLD";
+
             Console.WriteLine(myCase);
 
-            var work = new Work();
-            var encodedB = work.Encode(myCase);
-            var encodedC = work.Encode(encodedB);
+            var work = new Work(mappingType);
+            var encoded = work.Encode(myCase);
 
             Console.WriteLine("Encoding");
-            Console.WriteLine(encodedB);
-            Console.WriteLine(encodedC);
+            Console.WriteLine(encoded);
 
-            var decodedC = work.Decode(encodedC);
-            var decodedB = work.Decode(decodedC);
+            var decoded = work.Decode(encoded);
 
             Console.WriteLine("Decoding");
-            Console.WriteLine(decodedC);
-            Console.WriteLine(decodedB);
+            Console.WriteLine(decoded);
 
             Console.ReadKey();
         }

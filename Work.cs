@@ -1,32 +1,36 @@
-﻿namespace EncoderCore
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
+
+namespace EncoderCore
 {
     public class Work : IWork
     {
-        private readonly char _empty = '\0';
-        private readonly string _dRefTable = @"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()*+,-./";
-        private readonly string _bRefTable = @"/ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()*+,-.";
-        private readonly string _fRefTable = @"+,-./ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()*";
+        private static readonly char[] _alphabets = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789()*+,-./".ToCharArray();
+        private readonly char _mappingType;
 
-        public Work() { }
+        public Work(char MappingType)
+        {
+            _mappingType = MappingType;
+        }
 
         public string Encode(string plainText)
         {
             plainText = plainText.Trim().ToUpper();
-            string encodedStr = "";
-            WorkAction action = plainText[0] == 'B' ? WorkAction.EncodeBToF : WorkAction.EncodeDToB;
+            var encodedStr = string.Empty;
 
-            if (action == WorkAction.EncodeDToB)
-            {
-                encodedStr += 'B';
-            }
-            else
-            {
-                encodedStr += 'F';
-            }
+            var tableIndex = Array.FindIndex(_alphabets, x => x == _mappingType);
+            if (tableIndex == 0) return plainText;
 
-            for (var i = (action == WorkAction.EncodeDToB ? 0 : 1); i < plainText.Length; i++)
+            var cutArray = ShiftTable(tableIndex);
+            var listOfIndexes = CheckStringArray(plainText, _alphabets);
+            var number = 0;
+
+            encodedStr += _mappingType.ToString();
+            foreach (var i in listOfIndexes)
             {
-                encodedStr += FindChar(plainText[i], action);
+                int.TryParse(i, out number);
+                encodedStr = number == 0 ? encodedStr += i : encodedStr += cutArray[number];
             }
 
             return encodedStr;
@@ -35,55 +39,47 @@
         public string Decode(string encodedText)
         {
             encodedText = encodedText.Trim().ToUpper();
-            string decodedStr = "";
-            WorkAction action = encodedText[0] == 'F' ? WorkAction.DecodeFToB : WorkAction.DecodeBToD;
+            var decodedStr = string.Empty;
 
-            if (action == WorkAction.DecodeFToB)
-            {
-                decodedStr += 'B';
-            }
+            var tableIndex = Array.FindIndex(_alphabets, x => x == encodedText[0]);
+            if (tableIndex == 0) return encodedText;
 
-            for (var i = 1; i < encodedText.Length; i++)
+            var cutArray = ShiftTable(tableIndex);
+            var listOfIndexes = CheckStringArray(encodedText.Substring(1), cutArray);
+            var number = 0;
+
+            foreach (var i in listOfIndexes)
             {
-                decodedStr += FindChar(encodedText[i], action);
+                int.TryParse(i, out number);
+                decodedStr = number == 0 ? decodedStr += i : decodedStr += _alphabets[number];
             }
 
             return decodedStr;
         }
 
-        private char FindChar(char current, WorkAction action)
+        private List<string> CheckStringArray(string plaintext, char[] arraylist)
         {
-            char resp = _empty;
-            int ref1;
-            switch (action)
-            {
-                case WorkAction.EncodeDToB:
-                    ref1 = _dRefTable.IndexOf(current);
-                    resp = ref1 != -1 ? _bRefTable[ref1] : _empty;
-                    break;
-                case WorkAction.EncodeBToF:
-                    ref1 = _bRefTable.IndexOf(current);
-                    resp = ref1 != -1 ? _fRefTable[ref1] : _empty;
-                    break;
-                case WorkAction.DecodeFToB:
-                    ref1 = _fRefTable.IndexOf(current);
-                    resp = ref1 != -1 ? _bRefTable[ref1] : _empty;
-                    break;
-                case WorkAction.DecodeBToD:
-                    ref1 = _bRefTable.IndexOf(current);
-                    resp = ref1 != -1 ? _dRefTable[ref1] : _empty;
-                    break;
-            }
+            var listOfIndexes = new List<string>();
 
-            return resp;
+            for (var i = 0; i < plaintext.Length; i++)
+            {
+                if (arraylist.Contains(plaintext.ToUpper()[i]))
+                {
+                    listOfIndexes.Add(Array.FindIndex(arraylist, x => x == plaintext.ToUpper()[i]).ToString());
+                }
+                else
+                {
+                    listOfIndexes.Add(plaintext[i].ToString());
+                }
+            }
+            return listOfIndexes;
         }
 
-        private enum WorkAction
+        private char[] ShiftTable(int index)
         {
-            EncodeDToB,
-            EncodeBToF,
-            DecodeFToB,
-            DecodeBToD
+            var temp = new string(_alphabets);
+            var cutString = temp.Substring(temp.Length - index, index) + temp.Substring(0, (temp.Length - index));
+            return cutString.ToCharArray();
         }
     }
 }
